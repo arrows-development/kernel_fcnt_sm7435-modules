@@ -9,6 +9,9 @@
 #include "cam_ois_core.h"
 #include "cam_debug_util.h"
 #include "camera_main.h"
+#ifdef CONFIG_OIS_AW86006
+#include "aw86006_ois.h"
+#endif
 
 static int cam_ois_subdev_close_internal(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
@@ -372,8 +375,19 @@ static int cam_ois_component_bind(struct device *dev,
 
 	platform_set_drvdata(pdev, o_ctrl);
 	o_ctrl->cam_ois_state = CAM_OIS_INIT;
+#ifdef CONFIG_OIS_AW86006
+	rc = aw86006_ois_init(o_ctrl);
+	if (rc) {
+		CAM_ERR(CAM_OIS, "AW86006 initialization failed: %d", rc);
+		goto clear_drvdata;
+	}
+#endif
 	CAM_DBG(CAM_OIS, "Component bound successfully");
 	return rc;
+#ifdef CONFIG_OIS_AW86006
+clear_drvdata:
+	platform_set_drvdata(pdev, NULL);
+#endif
 unreg_subdev:
 	cam_unregister_subdev(&(o_ctrl->v4l2_dev_str));
 free_soc:
@@ -410,6 +424,9 @@ static void cam_ois_component_unbind(struct device *dev,
 	cam_ois_shutdown(o_ctrl);
 	mutex_unlock(&(o_ctrl->ois_mutex));
 	cam_unregister_subdev(&(o_ctrl->v4l2_dev_str));
+#ifdef CONFIG_OIS_AW86006
+	aw86006_ois_exit(o_ctrl);
+#endif
 
 	soc_private =
 		(struct cam_ois_soc_private *)o_ctrl->soc_info.soc_private;

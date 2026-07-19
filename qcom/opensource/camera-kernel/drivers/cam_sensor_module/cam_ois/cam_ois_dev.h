@@ -22,6 +22,10 @@
 #include "cam_soc_util.h"
 #include "cam_context.h"
 
+#ifdef CONFIG_OIS_AW86006
+#include <linux/workqueue.h>
+#endif
+
 #define DEFINE_MSM_MUTEX(mutexname) \
 	static struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
 
@@ -84,6 +88,15 @@ struct cam_ois_intf_params {
 	struct cam_req_mgr_crm_cb *crm_cb;
 };
 
+#ifdef CONFIG_OIS_AW86006
+struct awrw_ctrl {
+	uint32_t addr[4];
+	uint16_t reg_num;
+	uint8_t flag;
+	uint8_t *reg_data;
+};
+#endif
+
 /**
  * struct cam_ois_ctrl_t - OIS ctrl private data
  * @device_name     :   ois device_name
@@ -128,6 +141,11 @@ struct cam_ois_ctrl_t {
 	uint8_t ois_fw_flag;
 	uint8_t is_ois_calib;
 	struct cam_ois_opcode opcode;
+#ifdef CONFIG_OIS_AW86006
+	struct work_struct aw_fw_update_work;
+	struct mutex aw_ois_mutex;
+	struct awrw_ctrl *awrw_ctrl;
+#endif
 };
 
 /**
