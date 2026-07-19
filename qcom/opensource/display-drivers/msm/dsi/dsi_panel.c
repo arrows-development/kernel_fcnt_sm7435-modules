@@ -564,6 +564,36 @@ static int mipi_dsi_dcs_subtype_set_display_brightness(struct mipi_dsi_device *d
 	return mipi_dsi_dcs_write(dsi, bl_dcs_subtype, payload, sizeof(payload));
 }
 
+static const u16 fcnt_bl_level[] = {
+	146, 420, 516, 581, 839, 1596, 1709,
+	1967, 2338, 2918, 3514, 3708, 3788, 4095,
+};
+
+static const u16 fcnt_bl_offset[] = {
+	7, 10, 18, 13, 11, 4, 16,
+	10, 2, 12, 0, 0, 4, 0,
+};
+
+static u32 dsi_panel_calculate_bl_level(u32 bl_lvl)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(fcnt_bl_level); i++) {
+		if (!bl_lvl)
+			break;
+
+		if (bl_lvl <= fcnt_bl_level[i]) {
+			bl_lvl += fcnt_bl_offset[i];
+			break;
+		}
+	}
+
+	if (bl_lvl >= 1315 && bl_lvl <= 1330)
+		bl_lvl = 1322;
+
+	return ((bl_lvl & 0xff) << 8) | (bl_lvl >> 8);
+}
+
 static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
@@ -588,8 +618,10 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	if (panel->bl_config.bl_dcs_subtype)
 		rc = mipi_dsi_dcs_subtype_set_display_brightness(dsi, bl_lvl,
 						panel->bl_config.bl_dcs_subtype);
-	else
+	else {
+		bl_lvl = dsi_panel_calculate_bl_level(bl_lvl);
 		rc = mipi_dsi_dcs_set_display_brightness(dsi, bl_lvl);
+	}
 
 	if (rc < 0)
 		DSI_ERR("failed to update dcs backlight:%d\n", bl_lvl);
