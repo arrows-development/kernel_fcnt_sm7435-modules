@@ -1,0 +1,1 @@
+obj-m += qns_system.o
