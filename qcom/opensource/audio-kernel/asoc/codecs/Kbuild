@@ -297,3 +297,5 @@ hdmi_dlkm-y := $(HDMICODEC_OBJS)
 
 obj-$(CONFIG_SND_SWR_HAPTICS) += swr_haptics_dlkm.o
 swr_haptics_dlkm-y := $(SWR_HAP_OBJS)
+
+obj-y += aw882xx/
