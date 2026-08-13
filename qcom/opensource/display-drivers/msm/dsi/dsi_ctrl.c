@@ -42,6 +42,8 @@
 #define DSI_CTRL_WARN(c, fmt, ...)	DRM_WARN("[msm-dsi-warn]: %s: " fmt,\
 		c ? c->name : "inv", ##__VA_ARGS__)
 
+extern int dfpsline;
+
 struct dsi_ctrl_list_item {
 	struct dsi_ctrl *ctrl;
 	struct list_head list;
@@ -1316,7 +1318,8 @@ static void dsi_configure_command_scheduling(struct dsi_ctrl *dsi_ctrl,
 	struct dsi_ctrl_hw_ops dsi_hw_ops = dsi_ctrl->hw.ops;
 	struct dsi_mode_info *timing = &(dsi_ctrl->host_config.video_timing);
 
-	line_no = dsi_ctrl->host_config.common_config.dma_sched_line;
+	line_no = dfpsline ? 40 :
+		dsi_ctrl->host_config.common_config.dma_sched_line;
 	window = dsi_ctrl->host_config.common_config.dma_sched_window;
 
 	SDE_EVT32(dsi_ctrl->cell_index, SDE_EVTLOG_FUNC_ENTRY, line_no, window);
@@ -1334,7 +1337,7 @@ static void dsi_configure_command_scheduling(struct dsi_ctrl *dsi_ctrl,
 		sched_line_no = (line_no == 0) ? 1 : line_no;
 
 		if (timing) {
-			if (sched_line_no >= timing->v_front_porch)
+			if (!dfpsline && sched_line_no >= timing->v_front_porch)
 				sched_line_no = 1;
 			sched_line_no += timing->v_back_porch +
 				timing->v_sync_width + timing->v_active;

@@ -37,6 +37,12 @@
 
 #define SEC_PANEL_NAME_MAX_LEN  256
 
+int dfpsflag;
+int dfpsline;
+int currefresh = 144;
+int dfps6090 = 1;
+int dfps9060 = 1;
+
 u8 dbgfs_tx_cmd_buf[SZ_4K];
 static char dsi_display_primary[MAX_CMDLINE_PARAM_LEN];
 static char dsi_display_secondary[MAX_CMDLINE_PARAM_LEN];
@@ -7801,6 +7807,27 @@ int dsi_display_set_mode(struct dsi_display *display,
 			adj_mode.priv_info->clk_rate_hz);
 
 	memcpy(display->panel->cur_mode, &adj_mode, sizeof(adj_mode));
+
+	if (currefresh != timing.refresh_rate) {
+		if (currefresh == 60 && timing.refresh_rate == 90) {
+			dsi_panel_set_fps(display->panel, DSI_CMD_SET_90_ON);
+			dfps6090 = 0;
+		} else if (currefresh == 90 && timing.refresh_rate == 60) {
+			dsi_panel_set_fps(display->panel, DSI_CMD_SET_60_ON);
+			dfps9060 = 0;
+		}
+
+		dfpsline = currefresh;
+		currefresh = timing.refresh_rate;
+	} else {
+		dfpsline = 0;
+	}
+
+	dfpsflag = timing.refresh_rate;
+	if (timing.refresh_rate == 144)
+		dsi_panel_set_fps(display->panel, DSI_CMD_SET_144_ON);
+	else if (timing.refresh_rate == 120)
+		dsi_panel_set_fps(display->panel, DSI_CMD_SET_120_ON);
 error:
 	mutex_unlock(&display->display_lock);
 	return rc;

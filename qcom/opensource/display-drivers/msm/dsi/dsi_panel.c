@@ -1973,6 +1973,10 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command",
 	"qcom,mdss-dsi-qsync-on-commands",
 	"qcom,mdss-dsi-qsync-off-commands",
+	"qcom,mdss-dsi-144-on-command",
+	"qcom,mdss-dsi-120-on-command",
+	"qcom,mdss-dsi-90-on-command",
+	"qcom,mdss-dsi-60-on-command",
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -2001,6 +2005,10 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command-state",
 	"qcom,mdss-dsi-qsync-on-commands-state",
 	"qcom,mdss-dsi-qsync-off-commands-state",
+	"qcom,mdss-dsi-144-on-command-state",
+	"qcom,mdss-dsi-120-on-command-state",
+	"qcom,mdss-dsi-90-on-command-state",
+	"qcom,mdss-dsi-60-on-command-state",
 };
 
 int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -5040,6 +5048,29 @@ int dsi_panel_post_unprepare(struct dsi_panel *panel)
 		goto error;
 	}
 error:
+	mutex_unlock(&panel->panel_lock);
+	return rc;
+}
+
+int dsi_panel_set_fps(struct dsi_panel *panel, enum dsi_cmd_set_type type)
+{
+	int rc;
+
+	if (!panel)
+		return -EINVAL;
+
+	mutex_lock(&panel->panel_lock);
+	if (!dsi_panel_initialized(panel)) {
+		rc = -EINVAL;
+		goto unlock;
+	}
+
+	rc = dsi_panel_tx_cmd_set(panel, type);
+	if (rc)
+		DSI_ERR("[%s] failed to send fps command %d, rc=%d\n",
+			panel->name, type, rc);
+
+unlock:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }

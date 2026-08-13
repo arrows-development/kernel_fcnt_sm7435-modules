@@ -24,6 +24,39 @@
 #define DEFAULT_PANEL_JITTER_ARRAY_SIZE		2
 #define DEFAULT_PANEL_PREFILL_LINES	25
 
+extern int dfpsflag;
+extern int dfpsline;
+extern int dfps6090;
+extern int dfps9060;
+
+static void dsi_bridge_apply_pending_fps(struct dsi_bridge *c_bridge)
+{
+	enum dsi_cmd_set_type type;
+
+	switch (dfpsflag) {
+	case 144:
+		type = DSI_CMD_SET_144_ON;
+		break;
+	case 120:
+		type = DSI_CMD_SET_120_ON;
+		break;
+	case 90:
+		if (!dfps6090)
+			return;
+		type = DSI_CMD_SET_90_ON;
+		break;
+	case 60:
+		if (!dfps9060)
+			return;
+		type = DSI_CMD_SET_60_ON;
+		break;
+	default:
+		return;
+	}
+
+	dsi_panel_set_fps(c_bridge->display->panel, type);
+}
+
 static struct dsi_display_mode_priv_info default_priv_info = {
 	.panel_jitter_numer = DEFAULT_PANEL_JITTER_NUMERATOR,
 	.panel_jitter_denom = DEFAULT_PANEL_JITTER_DENOMINATOR,
@@ -235,6 +268,9 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 
 	SDE_ATRACE_BEGIN("dsi_display_enable");
 	rc = dsi_display_enable(c_bridge->display);
+	dsi_bridge_apply_pending_fps(c_bridge);
+	dfpsflag = 0;
+	dfpsline = 0;
 	if (rc) {
 		DSI_ERR("[%d] DSI display enable failed, rc=%d\n",
 				c_bridge->id, rc);
@@ -253,6 +289,12 @@ static void dsi_bridge_enable(struct drm_bridge *bridge)
 	int rc = 0;
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
 	struct dsi_display *display;
+
+	dsi_bridge_apply_pending_fps(c_bridge);
+	dfpsflag = 0;
+	dfpsline = 0;
+	dfps6090 = 1;
+	dfps9060 = 1;
 
 	if (!bridge) {
 		DSI_ERR("Invalid params\n");
